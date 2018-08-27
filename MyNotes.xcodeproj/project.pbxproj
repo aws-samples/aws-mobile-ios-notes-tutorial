@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB787ABB213474EB0055E420 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB787ABA213474EB0055E420 /* AnalyticsService.swift */; };
+		FB787ABD213475E00055E420 /* LocalAnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB787ABC213475E00055E420 /* LocalAnalyticsService.swift */; };
 		FBA77AE921307BC2001B5F22 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA77AE821307BC2001B5F22 /* AppDelegate.swift */; };
 		FBA77AEB21307BC2001B5F22 /* MasterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA77AEA21307BC2001B5F22 /* MasterViewController.swift */; };
 		FBA77AED21307BC2001B5F22 /* DetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA77AEC21307BC2001B5F22 /* DetailViewController.swift */; };
@@ -19,6 +21,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FB787ABA213474EB0055E420 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
+		FB787ABC213475E00055E420 /* LocalAnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAnalyticsService.swift; sourceTree = "<group>"; };
 		FBA77AE521307BC2001B5F22 /* MyNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FBA77AE821307BC2001B5F22 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		FBA77AEA21307BC2001B5F22 /* MasterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MasterViewController.swift; sourceTree = "<group>"; };
@@ -72,6 +76,8 @@
 				FBA77AFE21307F6C001B5F22 /* Note.swift */,
 				FBA77B0021307F90001B5F22 /* DataService.swift */,
 				FBA77B02213080FE001B5F22 /* MockDataService.swift */,
+				FB787ABA213474EB0055E420 /* AnalyticsService.swift */,
+				FB787ABC213475E00055E420 /* LocalAnalyticsService.swift */,
 			);
 			path = MyNotes;
 			sourceTree = "<group>";
@@ -150,9 +156,11 @@
 			files = (
 				FBA77AED21307BC2001B5F22 /* DetailViewController.swift in Sources */,
 				FBA77AEB21307BC2001B5F22 /* MasterViewController.swift in Sources */,
+				FB787ABD213475E00055E420 /* LocalAnalyticsService.swift in Sources */,
 				FBA77AE921307BC2001B5F22 /* AppDelegate.swift in Sources */,
 				FBA77AFF21307F6C001B5F22 /* Note.swift in Sources */,
 				FBA77B0121307F90001B5F22 /* DataService.swift in Sources */,
+				FB787ABB213474EB0055E420 /* AnalyticsService.swift in Sources */,
 				FBA77B03213080FE001B5F22 /* MockDataService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -9,6 +9,7 @@ import Foundation
 import UIKit
 
 class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDelegate {
+    var analyticsService: AnalyticsService? = nil
     var dataService: DataService? = nil
     var detailItem: Note? {
         didSet {
@@ -29,9 +30,12 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("viewDidLoad")
+
+        analyticsService = (UIApplication.shared.delegate as! AppDelegate).analyticsService
         dataService = (UIApplication.shared.delegate as! AppDelegate).dataService
+        
         configureView()
+        
         
         // Set up delegate for monitoring the text entered into the title and content fields
         titleTextField.delegate = self
@@ -55,7 +59,6 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
 
     // Update the user interface when the detail item changes
     func configureView() {
-        print("configureView")
         if let note = detailItem {
             if let id = note.id {
                 idTextField.text = id
@@ -69,6 +72,7 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
                 contentTextField.isEditable = true
             }
         } else {
+            analyticsService?.recordEvent("Error", parameters: ["op":"configureDetailView"], metrics: nil)
             idTextField.text = "Invalid Note Specification"
             titleTextField.text = "Something went wrong"
             contentTextField.text = "The detailItem property in DetailViewController is nil - this should never happen"
@@ -90,16 +94,20 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
             return
         }
         
+        analyticsService?.recordEvent("SaveNote", parameters: ["id":note.id ?? "new"], metrics: nil)
         dataService?.updateNote(note) { (note, error) in
             if (error != nil) {
+                analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
                 showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "updateNote Error")
             } else if (note != nil) {
                 if (detailItem != nil) {
                     detailItem!.id = note!.id
                 } else {
+                    analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
                     showErrorAlert("detailItem is nil???", title: "Bad Error")
                 }
             } else {
+                analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
                 showErrorAlert("note is nil", title: "updateNote Error")
             }
         }

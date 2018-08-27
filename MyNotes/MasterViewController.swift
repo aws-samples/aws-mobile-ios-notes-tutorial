@@ -9,6 +9,7 @@
 import UIKit
 
 class MasterViewController: UITableViewController {
+    var analyticsService: AnalyticsService? = nil
     var dataService : DataService? = nil
     var detailViewController: DetailViewController? = nil
     var notes = [Note]() {
@@ -21,8 +22,12 @@ class MasterViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Get a reference to the analytics service from the AppDelegate
+        analyticsService = (UIApplication.shared.delegate as! AppDelegate).analyticsService
+        
         // Get a reference to the data service from the AppDelegate
         dataService = (UIApplication.shared.delegate as! AppDelegate).dataService
+
         
         // Do any additional setup after loading the view, typically from a nib.
         navigationItem.leftBarButtonItem = editButtonItem
@@ -44,6 +49,7 @@ class MasterViewController: UITableViewController {
                     self.notes = notesFromNetwork!
                 }
             } else {
+                analyticsService?.recordEvent("Error", parameters: ["op":"loadNotes"], metrics: nil)
                 showErrorAlert(error?.localizedDescription ?? "Unknown data service error", title: "LoadNotes Error")
             }
         }
@@ -52,6 +58,8 @@ class MasterViewController: UITableViewController {
     override func viewWillAppear(_ animated: Bool) {
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
         super.viewWillAppear(animated)
+        
+        analyticsService?.recordEvent("StartListView", parameters: nil, metrics: nil)
         // Load the notes from the data service whenever we refresh
         loadNotesFromDataService()
     }
@@ -63,6 +71,7 @@ class MasterViewController: UITableViewController {
 
     @objc
     func insertNewObject(_ sender: Any) {
+        analyticsService?.recordEvent("AddNewNote", parameters: nil, metrics: nil)
         self.performSegue(withIdentifier: "showDetail", sender: (Any).self)
     }
 
@@ -73,6 +82,7 @@ class MasterViewController: UITableViewController {
         if segue.identifier == "showDetail" {
             if let indexPath = tableView.indexPathForSelectedRow {
                 object = notes[indexPath.row]
+                analyticsService?.recordEvent("StartDetailView", parameters: [ "id" : object?.id ?? "unknown" ], metrics: nil)
             } else {
                 object = Note()
             }
@@ -112,11 +122,13 @@ class MasterViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             guard let noteId = notes[indexPath.row].id else {
+                analyticsService?.recordEvent("Error", parameters: ["op":"swipeToDelete"], metrics: nil)
                 showErrorAlert("Invalid note ID presented for swipe-to-delete", title: "Bad Error")
                 return
             }
             
             // Delete the note from the backend
+            analyticsService?.recordEvent("DeleteNote", parameters: [ "id" : noteId ], metrics: nil)
             dataService?.deleteNote(noteId) { (error) in
                 if error == nil {
                     notes.remove(at: indexPath.row)
@@ -124,6 +136,7 @@ class MasterViewController: UITableViewController {
                         tableView.reloadData()
                     }
                 } else {
+                    analyticsService?.recordEvent("Error", parameters: ["op":"deleteNote"], metrics: nil)
                     showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "Row not removed")
                 }
             }
