@@ -1,129 +1,119 @@
-/*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file
- * except in compliance with the License. A copy of the License is located at
- *
- *    http://aws.amazon.com/apache2.0/
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the License.
- */
-import UIKit
+//
+//  DetailViewController.swift
+//  MyNotes
+//
+//  Created by Hall, Adrian on 8/24/18.
+//  Copyright © 2018 Hall, Adrian. All rights reserved.
+//
 import Foundation
-import CoreData
-import CoreGraphics
+import UIKit
 
-/* DetailViewController is a single note detail screen
-*  You can view note details and/or edit the note title or content
-*  The note details auto-save; no need to manually save note details
-*/
-class DetailViewController: UIViewController {
+class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDelegate {
+    var dataService: DataService? = nil
+    var detailItem: Note? {
+        didSet {
+            if (dataService != nil) {
+                configureView()
+            }
+        }
+    }
     
-    var noteContentProvider: NotesContentProvider? = nil
+    @IBOutlet weak var contentTextField: UITextView!
+    @IBOutlet weak var titleTextField: UITextField!
+    @IBOutlet weak var idTextField: UILabel!
     
-    @IBOutlet weak var noteContent: UITextView!
-    @IBOutlet weak var detailDescriptionLabel: UILabel!
-    @IBOutlet weak var noteTitle: UITextField!
-    
-    // Assign all the textfields to this action for keyboard collapse
+    // Assigned to all text fields for keyboard collapse
     @IBAction func resignKeyboardTextField(sender: UITextField) {
         sender.resignFirstResponder()
     }
     
-    static var noteId: String?
-    
-    // Timer! Property for auto-saving of a note
-    var autoSaveTimer: Timer!
-    
-    var notes: [NSManagedObject] = []
-
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Initialize Notes contentProvider
-        noteContentProvider = NotesContentProvider()
-        
-        // Start the auto-save timer to call autoSave() every 2 seconds
-        autoSaveTimer = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(autoSave), userInfo: nil, repeats: true)
-        
-        // Prepare textfields with rounded corners
-        noteTitle.layer.borderWidth = 0.5
-        noteTitle.layer.cornerRadius = 5
-        noteContent.layer.borderWidth = 0.5
-        noteContent.layer.cornerRadius = 5
-        
-        let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 5, height: 5))
-        noteTitle.leftViewMode = .always
-        noteTitle.leftView = paddingView
-       
-        // Do any additional setup after loading the view
+        print("viewDidLoad")
+        dataService = (UIApplication.shared.delegate as! AppDelegate).dataService
         configureView()
+        
+        // Set up delegate for monitoring the text entered into the title and content fields
+        titleTextField.delegate = self
+        contentTextField.delegate = self
     }
     
-    var myNote: Note? {
-        
-        didSet {
-            // Set the note Id if passed in from the MasterView
-            DetailViewController.noteId = myNote?.value(forKey: "noteId") as? String
-            
-            // Update the view with passed in note title and content.
-            configureView()
-        }
+    // When text is changed, save the change
+    func textFieldDidChange(_ textField: UITextField) {
+        saveToDataService()
     }
     
-    // Display the note title and content
-    func configureView() {
-        
-        if let title = myNote?.value(forKey: "title") as? String {
-            noteTitle?.text = title
-        }
-        
-        if let content = myNote?.value(forKey: "content") as? String {
-            noteContent?.text = content
-        }
-    }
-    
-    func autoSave() {
-        
-        // If this is a NEW note, set the Note Id
-        if (DetailViewController.noteId == nil) // Insert
-        {
-            let id = noteContentProvider?.insert(noteTitle: "", noteContent: "")
-            DetailViewController.noteId = id
-        }
-        else // Update
-        {
-            let noteId = DetailViewController.noteId
-            let noteTitle = self.noteTitle.text
-            let noteContent = self.noteContent.text
-            noteContentProvider?.update(noteId: noteId!, noteTitle: noteTitle!, noteContent: noteContent!)
-        }
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        // Stop the auto-save timer
-        if autoSaveTimer != nil {
-            autoSaveTimer.invalidate()
-        }
-        
-        // Update the note one last time unless a note was never created
-        let noteId = DetailViewController.noteId
-        if  noteId != nil {
-            noteContentProvider?.update(noteId: (noteId)!, noteTitle: self.noteTitle.text!, noteContent: self.noteContent.text!) //Core Data
-        }
-    }
-    
-    override func viewDidDisappear(_ animated: Bool) {
-        DetailViewController.noteId = nil
+    // When text is changed, save the change
+    func textViewDidChange(_ textView: UITextView) {
+        saveToDataService()
     }
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
     }
 
-    // Dismiss keyboard when user taps on view
+    // Update the user interface when the detail item changes
+    func configureView() {
+        print("configureView")
+        if let note = detailItem {
+            if let id = note.id {
+                idTextField.text = id
+            }
+            if let title = note.title {
+                titleTextField.text = title
+                titleTextField.isEnabled = true
+            }
+            if let content = note.content {
+                contentTextField.text = content
+                contentTextField.isEditable = true
+            }
+        } else {
+            idTextField.text = "Invalid Note Specification"
+            titleTextField.text = "Something went wrong"
+            contentTextField.text = "The detailItem property in DetailViewController is nil - this should never happen"
+            titleTextField.isEnabled = false
+            contentTextField.isEditable = false
+        }
+    }
+    
+    // Ideally, we would use this to submit to a queue of requests that are then processed asynchronously
+    // In this simple case, we just call the data service directly.  You can use RxSwift for queuing of
+    // requests to save.
+    func saveToDataService() {
+        let title = titleTextField.text?.trimmingCharacters(in: CharacterSet.whitespaces)
+        let content = contentTextField.text?.trimmingCharacters(in: CharacterSet.whitespaces)
+        let note = Note(id: detailItem?.id ?? nil, title: title, content: content)
+        
+        if (note.id == nil && note.title == "") {
+            print("Skipping save of empty item")
+            return
+        }
+        
+        dataService?.updateNote(note) { (note, error) in
+            if (error != nil) {
+                showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "updateNote Error")
+            } else if (note != nil) {
+                if (detailItem != nil) {
+                    detailItem!.id = note!.id
+                } else {
+                    showErrorAlert("detailItem is nil???", title: "Bad Error")
+                }
+            } else {
+                showErrorAlert("note is nil", title: "updateNote Error")
+            }
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        saveToDataService()
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        self.detailItem = nil
+    }
+
+    // Dismiss the keyboard when the user taps on the view
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         self.view.endEditing(true)
     }
@@ -132,6 +122,14 @@ class DetailViewController: UIViewController {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         self.view.endEditing(true)
         return false
+    }
+    
+    // Display the given error message as an alert pop-up
+    func showErrorAlert(_ errorMessage: String, title: String?) {
+        let alertController = UIAlertController(title: title ?? "Error", message: errorMessage, preferredStyle: .alert)
+        let defaultAction = UIAlertAction(title: "OK", style: .default, handler: nil)
+        alertController.addAction(defaultAction)
+        present(alertController, animated: true, completion: nil)
     }
 }
 

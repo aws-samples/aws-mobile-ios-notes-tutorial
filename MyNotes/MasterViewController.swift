@@ -1,197 +1,141 @@
-/*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file
- * except in compliance with the License. A copy of the License is located at
- *
- *    http://aws.amazon.com/apache2.0/
- *
- * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the License.
- */
+//
+//  MasterViewController.swift
+//  MyNotes
+//
+//  Created by Hall, Adrian on 8/24/18.
+//  Copyright © 2018 Hall, Adrian. All rights reserved.
+//
+
 import UIKit
-import CoreData
-import Foundation
 
-/*
- * MasterViewController displays all the stored notes and allows a
- * user to create a new note, select an existing note, and swipe to delete a note.
-*/
-class MasterViewController: UITableViewController, NSFetchedResultsControllerDelegate {
-
-    var _detailViewController: DetailViewController? = nil
-    var _noteContentProvider: NotesContentProvider? = nil
-    
-    // NSFetchedResultsController as an instance variable of table view controller
-    // to manage the results of a Core Data fetch request and display data to the user.
-    var _fetchedResultsController: NSFetchedResultsController<Note>? = nil
-    var managedObjectContext: NSManagedObjectContext? = nil
-    
-    var notes: [NSManagedObject] = []
+class MasterViewController: UITableViewController {
+    var dataService : DataService? = nil
+    var detailViewController: DetailViewController? = nil
+    var notes = [Note]() {
+        didSet {
+            // When we do something to the data, reload it.
+            tableView.reloadData()
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        managedObjectContext?.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        // Get a reference to the data service from the AppDelegate
+        dataService = (UIApplication.shared.delegate as! AppDelegate).dataService
         
-        //Initialize Note contentProvider
-        _noteContentProvider = NotesContentProvider()
-        
-        title = "My Notes"
+        // Do any additional setup after loading the view, typically from a nib.
+        navigationItem.leftBarButtonItem = editButtonItem
 
-        // Configure the add ('+') button
-        let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(insertNewNote(_:)))
+        let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(insertNewObject(_:)))
         navigationItem.rightBarButtonItem = addButton
         if let split = splitViewController {
             let controllers = split.viewControllers
-            _detailViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? DetailViewController
+            detailViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? DetailViewController
+        }
+    }
+    
+    func loadNotesFromDataService() {
+        dataService?.loadNotes() { (notesFromNetwork, error) in
+            if error == nil {
+                if notesFromNetwork == nil {
+                    self.notes = [Note]() // Clear the notes out
+                } else {
+                    self.notes = notesFromNetwork!
+                }
+            } else {
+                showErrorAlert(error?.localizedDescription ?? "Unknown data service error", title: "LoadNotes Error")
+            }
         }
     }
 
     override func viewWillAppear(_ animated: Bool) {
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
         super.viewWillAppear(animated)
+        // Load the notes from the data service whenever we refresh
+        loadNotesFromDataService()
     }
 
-    func insertNewNote(_ sender: Any) {
-        self.performSegue(withIdentifier: "showDetail", sender: (Any).self);
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
     }
-    
+
+    @objc
+    func insertNewObject(_ sender: Any) {
+        self.performSegue(withIdentifier: "showDetail", sender: (Any).self)
+    }
+
     // MARK: - Segues
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        var object: Note? = nil
+        
         if segue.identifier == "showDetail" {
             if let indexPath = tableView.indexPathForSelectedRow {
-                
-            let object = fetchedResultsController.object(at: indexPath)
-                let controller = (segue.destination as! UINavigationController).topViewController as! DetailViewController
-                controller.myNote = object
-                controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
-                controller.navigationItem.leftItemsSupplementBackButton = true
+                object = notes[indexPath.row]
+            } else {
+                object = Note()
             }
+                
+            let controller = segue.destination as! DetailViewController
+            controller.detailItem = object
+            controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
+            controller.navigationItem.leftItemsSupplementBackButton = true
         }
     }
 
-    // MARK: - table view boiler plate stuff
-    // Table View Data Source
+    // MARK: - Table View
     override func numberOfSections(in tableView: UITableView) -> Int {
-        return fetchedResultsController.sections?.count ?? 0
+        return 1
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let sectionInfo = fetchedResultsController.sections![section]
-        return sectionInfo.numberOfObjects
+        return notes.count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
-        // Trying to reuse a cell
-        let cellIdentifier = "ElementCell"
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellIdentifier)
-            ?? UITableViewCell(style: .subtitle, reuseIdentifier: cellIdentifier)
-        
-        let event = fetchedResultsController.object(at: indexPath)
-        
-        configureCell(cell, withEvent: event)
+        let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
+        cell.textLabel!.text = notes[indexPath.row].title ?? ""
         return cell
     }
-
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        _ = indexPath
-        self.performSegue(withIdentifier: "showDetail", sender: indexPath);
-    }
     
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        self.performSegue(withIdentifier: "showDetail", sender: (Any).self)
+    }
+
+    // Enable swipe-to-delete
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the note item to be editable.
         return true
     }
 
-    // Integrating the Fetched Results Controller with the Table View Data Source
+    // Handle a swipe into swipe-to-delete
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            let context = fetchedResultsController.managedObjectContext
-            let noteObj = fetchedResultsController.object(at: indexPath)
-            let noteId = fetchedResultsController.object(at: indexPath).noteId
+            guard let noteId = notes[indexPath.row].id else {
+                showErrorAlert("Invalid note ID presented for swipe-to-delete", title: "Bad Error")
+                return
+            }
             
-            //Delete Note Locally
-            _noteContentProvider?.delete(managedObjectContext: context, managedObj: noteObj, noteId: noteId)
+            // Delete the note from the backend
+            dataService?.deleteNote(noteId) { (error) in
+                if error == nil {
+                    notes.remove(at: indexPath.row)
+                    DispatchQueue.main.async {
+                        tableView.reloadData()
+                    }
+                } else {
+                    showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "Row not removed")
+                }
+            }
         }
-    }
-
-    func configureCell(_ cell: UITableViewCell, withEvent event: Note) {
-        cell.textLabel!.text = "Title: " + event.title!
-        cell.detailTextLabel?.text = event.content
-    }
-
-    // MARK: - Fetched results controller
-    // Initialization of the NSFetchedResultsController.
-    var fetchedResultsController: NSFetchedResultsController<Note> {
-        if _fetchedResultsController != nil {
-            return _fetchedResultsController!
-        }
-        
-        let fetchRequest: NSFetchRequest<Note> = Note.fetchRequest()
-        
-        // Set the batch size to a suitable number.
-        fetchRequest.fetchBatchSize = 20
-        
-        // Edit the sort key as appropriate.
-        let sortDescriptor = NSSortDescriptor(key: "creationDate", ascending: false)
-        
-        fetchRequest.sortDescriptors = [sortDescriptor]
-        
-        // Edit the section name key path and cache name if appropriate.
-        // nil for section name key path means "no sections".
-        let aFetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: self.managedObjectContext!, sectionNameKeyPath: nil, cacheName: "Master")
-        aFetchedResultsController.delegate = self
-        _fetchedResultsController = aFetchedResultsController
-        
-        do {
-            try _fetchedResultsController!.performFetch()
-        } catch {
-             // Replace this implementation with code to handle the error appropriately.
-             // fatalError() causes the application to generate a crash log and terminate. 
-             let nserror = error as NSError
-             fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
-        }
-        return _fetchedResultsController!
-    }
-
-    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        tableView.beginUpdates()
-    }
-
-    // Called when user swipes and selects "Delete"
-    func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
-        switch type {
-            case .insert:
-                tableView.insertRows(at: [newIndexPath!], with: .fade)
-            case .delete:
-                tableView.deleteRows(at: [indexPath!], with: .fade)
-            case .update:
-                configureCell(tableView.cellForRow(at: indexPath!)!, withEvent: anObject as! Note)
-            case .move:
-                configureCell(tableView.cellForRow(at: indexPath!)!, withEvent: anObject as! Note)
-                tableView.moveRow(at: indexPath!, to: newIndexPath!)
-        }
-    }
-
-    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        tableView.endUpdates()
     }
     
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
+    // Display the given error message as an alert pop-up
+    func showErrorAlert(_ errorMessage: String, title: String?) {
+        let alertController = UIAlertController(title: title ?? "Error", message: errorMessage, preferredStyle: .alert)
+        let defaultAction = UIAlertAction(title: "OK", style: .default, handler: nil)
+        alertController.addAction(defaultAction)
+        present(alertController, animated: true, completion: nil)
     }
-
-    /*
-     // Implementing the above methods to update the table view in response to individual changes may have performance implications if a large number of changes are made simultaneously. If this proves to be an issue, you can instead just implement controllerDidChangeContent: which notifies the delegate that all section and object changes have been processed.
-     
-     func controllerDidChangeContent(controller: NSFetchedResultsController) {
-         // In the simplest, most efficient, case, reload the table view.
-         tableView.reloadData()
-     }
-     */
-
 }
 
