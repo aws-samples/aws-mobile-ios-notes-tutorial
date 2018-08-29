@@ -62,11 +62,6 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
         configureView()
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        print("viewWillAppear - detail")
-    }
-    
     // When text is changed, save the change
     @objc func textFieldDidChange(_ textField: UITextField) {
         saveToDataService()
@@ -128,8 +123,8 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
         let content = (contentTextView.textColor == PlaceholderColor) ? "" : contentTextView.text?.trimmingCharacters(in: CharacterSet.whitespaces)
         let note = Note(id: noteId ?? nil, title: title, content: content)
         
+        // Skip saving of empty items
         if (note.id == nil && note.title == "") {
-            print("Skipping save of empty item")
             return
         }
         

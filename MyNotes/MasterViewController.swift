@@ -30,7 +30,6 @@ class MasterViewController: UITableViewController {
     var addButton: UIBarButtonItem? = nil
     var notes = [Note]() {
         didSet {
-            // When we do something to the data, reload it.
             tableView.reloadData()
         }
     }
@@ -45,7 +44,6 @@ class MasterViewController: UITableViewController {
         // Get a reference to the data service from the AppDelegate
         dataService = (UIApplication.shared.delegate as! AppDelegate).dataService
 
-        
         // Do any additional setup after loading the view, typically from a nib.
         navigationItem.leftBarButtonItem = editButtonItem
 
@@ -77,11 +75,7 @@ class MasterViewController: UITableViewController {
     }
     
     @objc func rotated() {
-        switch UIDevice.current.orientation {
-        case .landscapeLeft, .landscapeRight:
-            print("Rotating to landscape")
-        default:
-            print("Rotating to portrait")
+        if (UIDevice.current.orientation != .landscapeLeft && UIDevice.current.orientation != .landscapeRight) {
             if tableView.indexPathForSelectedRow != nil {
                 self.performSegue(withIdentifier: "showDetail", sender: (Any).self)
             }
@@ -114,13 +108,6 @@ class MasterViewController: UITableViewController {
                 analyticsService?.recordEvent("Error", parameters: ["op":"loadNotes"], metrics: nil)
                 showErrorAlert(error?.localizedDescription ?? "Unknown data service error", title: "LoadNotes Error")
             }
-        }
-    }
-
-    func scrollToBottom(_ tableView: UITableView){
-        DispatchQueue.main.async {
-            let indexPath = IndexPath(row: tableView.numberOfRows(inSection: 0) - 1, section: 0)
-            tableView.scrollToRow(at: indexPath, at: .bottom, animated: true)
         }
     }
 
