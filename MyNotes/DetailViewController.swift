@@ -1,27 +1,36 @@
-//
-//  DetailViewController.swift
-//  MyNotes
-//
-//  Created by Hall, Adrian on 8/24/18.
-//  Copyright © 2018 Hall, Adrian. All rights reserved.
-//
+/*
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file
+ * except in compliance with the License. A copy of the License is located at
+ *
+ *    http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
+
 import Foundation
 import UIKit
 
 class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDelegate {
+    @IBOutlet weak var contentTextView: UITextView!
+    @IBOutlet weak var titleTextField: UITextField!
+    @IBOutlet weak var idLabel: UILabel!
+    
+    let PLACEHOLDER_TEXT = "Enter note content here..."
     var analyticsService: AnalyticsService? = nil
     var dataService: DataService? = nil
+    var noteId: String? = nil
     var detailItem: Note? {
         didSet {
+            noteId = detailItem?.id
             if (dataService != nil) {
                 configureView()
             }
         }
     }
-    
-    @IBOutlet weak var contentTextField: UITextView!
-    @IBOutlet weak var titleTextField: UITextField!
-    @IBOutlet weak var idTextField: UILabel!
     
     // Assigned to all text fields for keyboard collapse
     @IBAction func resignKeyboardTextField(sender: UITextField) {
@@ -34,22 +43,44 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
         analyticsService = (UIApplication.shared.delegate as! AppDelegate).analyticsService
         dataService = (UIApplication.shared.delegate as! AppDelegate).dataService
         
-        configureView()
-        
-        
         // Set up delegate for monitoring the text entered into the title and content fields
         titleTextField.delegate = self
-        contentTextField.delegate = self
+        titleTextField.addTarget(self, action: #selector(self.textFieldDidChange(_:)), for: UIControlEvents.editingChanged)
+        contentTextView.delegate = self
+        contentTextView.text = PLACEHOLDER_TEXT
+        contentTextView.textColor = UIColor.lightGray
+
+        // Configure the view if data is available
+        configureView()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        print("viewWillAppear - detail")
     }
     
     // When text is changed, save the change
-    func textFieldDidChange(_ textField: UITextField) {
+    @objc func textFieldDidChange(_ textField: UITextField) {
         saveToDataService()
     }
     
     // When text is changed, save the change
     func textViewDidChange(_ textView: UITextView) {
         saveToDataService()
+    }
+    
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        if textView.textColor == UIColor.lightGray {
+            textView.text = nil
+            textView.textColor = UIColor.black
+        }
+    }
+    
+    func textViewDidEndEditing(_ textView: UITextView) {
+        if textView.text.isEmpty {
+            textView.text = PLACEHOLDER_TEXT
+            textView.textColor = UIColor.lightGray
+        }
     }
     
     override func didReceiveMemoryWarning() {
@@ -61,23 +92,23 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     func configureView() {
         if let note = detailItem {
             if let id = note.id {
-                idTextField.text = id
+                idLabel.text = id
             }
             if let title = note.title {
                 titleTextField.text = title
-                titleTextField.isEnabled = true
             }
             if let content = note.content {
-                contentTextField.text = content
-                contentTextField.isEditable = true
+                if (!content.isEmpty) {
+                    contentTextView.text = content
+                    contentTextView.textColor = UIColor.black
+                }
             }
+            titleTextField.isHidden = false
+            contentTextView.isHidden = false
         } else {
-            analyticsService?.recordEvent("Error", parameters: ["op":"configureDetailView"], metrics: nil)
-            idTextField.text = "Invalid Note Specification"
-            titleTextField.text = "Something went wrong"
-            contentTextField.text = "The detailItem property in DetailViewController is nil - this should never happen"
-            titleTextField.isEnabled = false
-            contentTextField.isEditable = false
+            idLabel.text = "Click on a note to view it"
+            titleTextField.isHidden = true
+            contentTextView.isHidden = true
         }
     }
     
@@ -86,8 +117,8 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     // requests to save.
     func saveToDataService() {
         let title = titleTextField.text?.trimmingCharacters(in: CharacterSet.whitespaces)
-        let content = contentTextField.text?.trimmingCharacters(in: CharacterSet.whitespaces)
-        let note = Note(id: detailItem?.id ?? nil, title: title, content: content)
+        let content = contentTextView.text?.trimmingCharacters(in: CharacterSet.whitespaces)
+        let note = Note(id: noteId ?? nil, title: title, content: content)
         
         if (note.id == nil && note.title == "") {
             print("Skipping save of empty item")
@@ -101,10 +132,10 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
                 showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "updateNote Error")
             } else if (note != nil) {
                 if (detailItem != nil) {
-                    detailItem!.id = note!.id
+                    noteId = note!.id
+                    idLabel.text = noteId
                 } else {
-                    analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
-                    showErrorAlert("detailItem is nil???", title: "Bad Error")
+                    detailItem = note
                 }
             } else {
                 analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)

@@ -1,10 +1,15 @@
-//
-//  MasterViewController.swift
-//  MyNotes
-//
-//  Created by Hall, Adrian on 8/24/18.
-//  Copyright © 2018 Hall, Adrian. All rights reserved.
-//
+/*
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file
+ * except in compliance with the License. A copy of the License is located at
+ *
+ *    http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
 
 import UIKit
 
@@ -12,6 +17,7 @@ class MasterViewController: UITableViewController {
     var analyticsService: AnalyticsService? = nil
     var dataService : DataService? = nil
     var detailViewController: DetailViewController? = nil
+    var addButton: UIBarButtonItem? = nil
     var notes = [Note]() {
         didSet {
             // When we do something to the data, reload it.
@@ -21,6 +27,7 @@ class MasterViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.title = "My Notes"
         
         // Get a reference to the analytics service from the AppDelegate
         analyticsService = (UIApplication.shared.delegate as! AppDelegate).analyticsService
@@ -32,7 +39,7 @@ class MasterViewController: UITableViewController {
         // Do any additional setup after loading the view, typically from a nib.
         navigationItem.leftBarButtonItem = editButtonItem
 
-        let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(insertNewObject(_:)))
+        addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(insertNewObject(_:)))
         navigationItem.rightBarButtonItem = addButton
         if let split = splitViewController {
             let controllers = split.viewControllers
@@ -40,6 +47,35 @@ class MasterViewController: UITableViewController {
         }
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
+        super.viewWillAppear(animated)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(rotated), name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
+        
+        analyticsService?.recordEvent("StartListView", parameters: nil, metrics: nil)
+        
+        // Load the notes from the data service whenever we refresh
+        loadNotesFromDataService()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
+    }
+    
+    @objc func rotated() {
+        switch UIDevice.current.orientation {
+        case .landscapeLeft, .landscapeRight:
+            print("Rotating to landscape")
+        default:
+            print("Rotating to portrait")
+            if tableView.indexPathForSelectedRow != nil {
+                self.performSegue(withIdentifier: "showDetail", sender: (Any).self)
+            }
+        }
+    }
+
     func loadNotesFromDataService() {
         dataService?.loadNotes() { (notesFromNetwork, error) in
             if error == nil {
@@ -55,14 +91,7 @@ class MasterViewController: UITableViewController {
         }
     }
 
-    override func viewWillAppear(_ animated: Bool) {
-        clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
-        super.viewWillAppear(animated)
-        
-        analyticsService?.recordEvent("StartListView", parameters: nil, metrics: nil)
-        // Load the notes from the data service whenever we refresh
-        loadNotesFromDataService()
-    }
+
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -72,25 +101,33 @@ class MasterViewController: UITableViewController {
     @objc
     func insertNewObject(_ sender: Any) {
         analyticsService?.recordEvent("AddNewNote", parameters: nil, metrics: nil)
-        self.performSegue(withIdentifier: "showDetail", sender: (Any).self)
+        self.performSegue(withIdentifier: "showDetail", sender: sender)
     }
 
     // MARK: - Segues
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        var object: Note? = nil
-        
         if segue.identifier == "showDetail" {
-            if let indexPath = tableView.indexPathForSelectedRow {
-                object = notes[indexPath.row]
-                analyticsService?.recordEvent("StartDetailView", parameters: [ "id" : object?.id ?? "unknown" ], metrics: nil)
-            } else {
-                object = Note()
+            var note: Note? = nil
+            
+            // If the sender is the add button, then create a new note, otherwise load the note that you clicked on.
+            if let barButton = sender as? UIBarButtonItem {
+                if addButton == barButton {
+                    note = Note()
+                    if let indexPath = tableView.indexPathForSelectedRow {
+                        tableView.deselectRow(at: indexPath, animated: true)
+                    }
+                }
+            } else if let indexPath = tableView.indexPathForSelectedRow {
+                note = notes[indexPath.row]
             }
-                
-            let controller = segue.destination as! DetailViewController
-            controller.detailItem = object
-            controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
-            controller.navigationItem.leftItemsSupplementBackButton = true
+            
+            if (note != nil) {
+                analyticsService?.recordEvent("StartDetailView", parameters: [ "id" : note!.id ?? "unknown" ], metrics: nil)
+                let controller = (segue.destination as! UINavigationController).topViewController as! DetailViewController
+                controller.detailItem = note
+                controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
+                controller.navigationItem.leftItemsSupplementBackButton = true
+            }
         }
     }
 
@@ -107,10 +144,6 @@ class MasterViewController: UITableViewController {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         cell.textLabel!.text = notes[indexPath.row].title ?? ""
         return cell
-    }
-    
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        self.performSegue(withIdentifier: "showDetail", sender: (Any).self)
     }
 
     // Enable swipe-to-delete
