@@ -20,9 +20,15 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     @IBOutlet weak var idLabel: UILabel!
     
     let PLACEHOLDER_TEXT = "Enter note content here..."
+    let PlaceholderColor = UIColor.lightGray
+    let TextColor = UIColor.black
+    
     var analyticsService: AnalyticsService? = nil
     var dataService: DataService? = nil
     var noteId: String? = nil
+    var noteIndex: Int? = nil
+    var senderView: SaveNoteDelegate? = nil
+    
     var detailItem: Note? {
         didSet {
             noteId = detailItem?.id
@@ -30,6 +36,12 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
                 configureView()
             }
         }
+    }
+    
+    func setNoteDetail(index: Int?, note: Note, sender: SaveNoteDelegate) {
+        detailItem = note
+        noteIndex = index
+        senderView = sender
     }
     
     // Assigned to all text fields for keyboard collapse
@@ -48,7 +60,7 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
         titleTextField.addTarget(self, action: #selector(self.textFieldDidChange(_:)), for: UIControlEvents.editingChanged)
         contentTextView.delegate = self
         contentTextView.text = PLACEHOLDER_TEXT
-        contentTextView.textColor = UIColor.lightGray
+        contentTextView.textColor = PlaceholderColor
 
         // Configure the view if data is available
         configureView()
@@ -70,16 +82,16 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     }
     
     func textViewDidBeginEditing(_ textView: UITextView) {
-        if textView.textColor == UIColor.lightGray {
+        if textView.textColor == PlaceholderColor {
             textView.text = nil
-            textView.textColor = UIColor.black
+            textView.textColor = TextColor
         }
     }
     
     func textViewDidEndEditing(_ textView: UITextView) {
         if textView.text.isEmpty {
             textView.text = PLACEHOLDER_TEXT
-            textView.textColor = UIColor.lightGray
+            textView.textColor = PlaceholderColor
         }
     }
     
@@ -117,7 +129,7 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     // requests to save.
     func saveToDataService() {
         let title = titleTextField.text?.trimmingCharacters(in: CharacterSet.whitespaces)
-        let content = contentTextView.text?.trimmingCharacters(in: CharacterSet.whitespaces)
+        let content = (contentTextView.textColor == PlaceholderColor) ? "" : contentTextView.text?.trimmingCharacters(in: CharacterSet.whitespaces)
         let note = Note(id: noteId ?? nil, title: title, content: content)
         
         if (note.id == nil && note.title == "") {
@@ -136,6 +148,12 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
                     idLabel.text = noteId
                 } else {
                     detailItem = note
+                }
+                
+                if (noteIndex == nil || noteIndex == -1) {
+                    noteIndex = senderView?.noteAdded(note: note!)
+                } else {
+                    senderView?.noteSaved(index: noteIndex!, note: note!)
                 }
             } else {
                 analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)

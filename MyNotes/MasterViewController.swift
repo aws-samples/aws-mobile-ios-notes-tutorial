@@ -13,7 +13,12 @@
 
 import UIKit
 
-class MasterViewController: UITableViewController {
+protocol SaveNoteDelegate {
+    func noteAdded(note: Note) -> Int
+    func noteSaved(index: Int, note: Note) -> Void
+}
+
+class MasterViewController: UITableViewController, SaveNoteDelegate {
     var analyticsService: AnalyticsService? = nil
     var dataService : DataService? = nil
     var detailViewController: DetailViewController? = nil
@@ -64,6 +69,21 @@ class MasterViewController: UITableViewController {
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
     }
     
+    func noteAdded(note: Note) -> Int {
+        loadNotesFromDataService()
+        scrollToBottom(tableView)
+        for (index, element) in notes.enumerated() {
+            if (element.id == note.id) {
+                return index
+            }
+        }
+        return -1
+    }
+    
+    func noteSaved(index: Int, note: Note) {
+        notes[index] = note
+    }
+    
     @objc func rotated() {
         switch UIDevice.current.orientation {
         case .landscapeLeft, .landscapeRight:
@@ -91,7 +111,12 @@ class MasterViewController: UITableViewController {
         }
     }
 
-
+    func scrollToBottom(_ tableView: UITableView){
+        DispatchQueue.main.async {
+            let indexPath = IndexPath(row: tableView.numberOfRows(inSection: 0) - 1, section: 0)
+            tableView.scrollToRow(at: indexPath, at: .bottom, animated: true)
+        }
+    }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -124,7 +149,7 @@ class MasterViewController: UITableViewController {
             if (note != nil) {
                 analyticsService?.recordEvent("StartDetailView", parameters: [ "id" : note!.id ?? "unknown" ], metrics: nil)
                 let controller = (segue.destination as! UINavigationController).topViewController as! DetailViewController
-                controller.detailItem = note
+                controller.setNoteDetail(index: tableView?.indexPathForSelectedRow?.row, note: note!, sender: self as SaveNoteDelegate)
                 controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
                 controller.navigationItem.leftItemsSupplementBackButton = true
             }
