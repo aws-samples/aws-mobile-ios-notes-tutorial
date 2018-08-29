@@ -149,7 +149,7 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     }
     
     override func viewWillDisappear(_ animated: Bool) {
-        saveToDataService()
+        //saveToDataService()
     }
     
     override func viewDidDisappear(_ animated: Bool) {
