@@ -13,12 +13,17 @@
 
 import UIKit
 
-protocol SaveNoteDelegate {
-    func noteAdded(note: Note) -> Int
-    func noteSaved(index: Int, note: Note) -> Void
+extension UISplitViewController {
+    var primaryViewController: UIViewController? {
+        return self.viewControllers.first
+    }
+    
+    var secondaryViewController: UIViewController? {
+        return self.viewControllers.count > 1 ? self.viewControllers[1] : nil
+    }
 }
 
-class MasterViewController: UITableViewController, SaveNoteDelegate {
+class MasterViewController: UITableViewController {
     var analyticsService: AnalyticsService? = nil
     var dataService : DataService? = nil
     var detailViewController: DetailViewController? = nil
@@ -57,6 +62,7 @@ class MasterViewController: UITableViewController, SaveNoteDelegate {
         super.viewWillAppear(animated)
         
         NotificationCenter.default.addObserver(self, selector: #selector(rotated), name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(noteChanged(notification:)), name: Notification.Name("NoteChangedIdentifier"), object: nil)
         
         analyticsService?.recordEvent("StartListView", parameters: nil, metrics: nil)
         
@@ -67,21 +73,7 @@ class MasterViewController: UITableViewController, SaveNoteDelegate {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
-    }
-    
-    func noteAdded(note: Note) -> Int {
-        loadNotesFromDataService()
-        scrollToBottom(tableView)
-        for (index, element) in notes.enumerated() {
-            if (element.id == note.id) {
-                return index
-            }
-        }
-        return -1
-    }
-    
-    func noteSaved(index: Int, note: Note) {
-        notes[index] = note
+        NotificationCenter.default.removeObserver(self, name: Notification.Name("NoteChangedIdentifier"), object: nil)
     }
     
     @objc func rotated() {
@@ -94,6 +86,20 @@ class MasterViewController: UITableViewController, SaveNoteDelegate {
                 self.performSegue(withIdentifier: "showDetail", sender: (Any).self)
             }
         }
+    }
+    
+    @objc func noteChanged(notification: Notification) {
+        let note = notification.object as! Note
+        var index = notes.index(where: { n in n.id == note.id })
+        if (index != nil) {
+            notes[index!] = note
+        } else {
+            notes.append(note)
+            index = notes.count - 1
+        }
+        
+        let indexPath = IndexPath(row: index!, section: 0)
+        tableView.selectRow(at: indexPath, animated: true, scrollPosition: .bottom)
     }
 
     func loadNotesFromDataService() {
@@ -149,7 +155,7 @@ class MasterViewController: UITableViewController, SaveNoteDelegate {
             if (note != nil) {
                 analyticsService?.recordEvent("StartDetailView", parameters: [ "id" : note!.id ?? "unknown" ], metrics: nil)
                 let controller = (segue.destination as! UINavigationController).topViewController as! DetailViewController
-                controller.setNoteDetail(index: tableView?.indexPathForSelectedRow?.row, note: note!, sender: self as SaveNoteDelegate)
+                controller.setNoteDetail(note)
                 controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
                 controller.navigationItem.leftItemsSupplementBackButton = true
             }
@@ -192,6 +198,17 @@ class MasterViewController: UITableViewController, SaveNoteDelegate {
                     notes.remove(at: indexPath.row)
                     DispatchQueue.main.async {
                         tableView.reloadData()
+                    }
+                    // If the detail view is showing the current note, remove it.
+                    if let view = splitViewController {
+                        if (view.displayMode == UISplitViewControllerDisplayMode.allVisible) {
+                            if let detail = splitViewController?.secondaryViewController?.childViewControllers.first as! DetailViewController? {
+                                if noteId == detail.detailItem?.id {
+                                    // We are deleting the item that is currently displayed
+                                    detail.detailItem = nil
+                                }
+                            }
+                        }
                     }
                 } else {
                     analyticsService?.recordEvent("Error", parameters: ["op":"deleteNote"], metrics: nil)

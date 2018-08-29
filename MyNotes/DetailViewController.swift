@@ -26,8 +26,6 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     var analyticsService: AnalyticsService? = nil
     var dataService: DataService? = nil
     var noteId: String? = nil
-    var noteIndex: Int? = nil
-    var senderView: SaveNoteDelegate? = nil
     
     var detailItem: Note? {
         didSet {
@@ -38,10 +36,8 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
         }
     }
     
-    func setNoteDetail(index: Int?, note: Note, sender: SaveNoteDelegate) {
+    func setNoteDetail(_ note: Note?) {
         detailItem = note
-        noteIndex = index
-        senderView = sender
     }
     
     // Assigned to all text fields for keyboard collapse
@@ -149,12 +145,7 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
                 } else {
                     detailItem = note
                 }
-                
-                if (noteIndex == nil || noteIndex == -1) {
-                    noteIndex = senderView?.noteAdded(note: note!)
-                } else {
-                    senderView?.noteSaved(index: noteIndex!, note: note!)
-                }
+                NotificationCenter.default.post(name: Notification.Name("NoteChangedIdentifier"), object: note)
             } else {
                 analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
                 showErrorAlert("note is nil", title: "updateNote Error")
