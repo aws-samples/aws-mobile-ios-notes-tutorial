@@ -26,6 +26,7 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
     var analyticsService: AnalyticsService? = nil
     var dataService: DataService? = nil
     var noteId: String? = nil
+    var inProgress: Bool = false
     
     var detailItem: Note? {
         didSet {
@@ -128,22 +129,37 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
             return
         }
         
-        analyticsService?.recordEvent("SaveNote", parameters: ["id":note.id ?? "new"], metrics: nil)
-        dataService?.updateNote(note) { (note, error) in
-            if (error != nil) {
-                self.analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
-                self.showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "updateNote Error")
-            } else if (note != nil) {
-                if (self.detailItem != nil) {
-                    self.noteId = note!.id
-                    self.idLabel.text = self.noteId
+        DispatchQueue.global(qos: DispatchQoS.QoSClass.background).async {
+            self.debouncedSave(note)
+        }
+    }
+        
+    func debouncedSave(_ note: Note) {
+        if (!inProgress) {
+            inProgress = true
+            analyticsService?.recordEvent("SaveNote", parameters: ["id":note.id ?? "new"], metrics: nil)
+            dataService?.updateNote(note) { (note, error) in
+                if (error != nil) {
+                    self.analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
+                    self.showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "updateNote Error")
+                } else if (note != nil) {
+                    if (self.detailItem != nil) {
+                        self.noteId = note!.id
+                        self.idLabel.text = self.noteId
+                    } else {
+                        self.detailItem = note
+                    }
+                    NotificationCenter.default.post(name: Notification.Name("NoteChangedIdentifier"), object: note)
                 } else {
-                    self.detailItem = note
+                    self.analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
+                    self.showErrorAlert("note is nil", title: "updateNote Error")
                 }
-                NotificationCenter.default.post(name: Notification.Name("NoteChangedIdentifier"), object: note)
-            } else {
-                self.analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
-                self.showErrorAlert("note is nil", title: "updateNote Error")
+                self.inProgress = false
+                let title = self.titleTextField.text?.trimmingCharacters(in: CharacterSet.whitespaces)
+                let content = (self.contentTextView.textColor == self.PlaceholderColor) ? "" : self.contentTextView.text?.trimmingCharacters(in: CharacterSet.whitespaces)
+                if (title != note?.title || content != note?.content) {
+                    self.saveToDataService()
+                }
             }
         }
     }

@@ -65,7 +65,9 @@ class MasterViewController: UITableViewController {
         analyticsService?.recordEvent("StartListView", parameters: nil, metrics: nil)
         
         // Load the notes from the data service whenever we refresh
-        loadNotesFromDataService()
+        DispatchQueue.global(qos: DispatchQoS.QoSClass.background).async {
+            self.loadNotesFromDataService()
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
