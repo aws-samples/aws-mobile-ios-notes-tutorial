@@ -20,10 +20,10 @@ typealias UpdateNoteResponse = (Note?, Error?) -> Void
 typealias DeleteNoteResponse = (Error?) -> Void
 
 protocol DataService {
-    func getNote(_ noteId: String, onCompletion: GetNoteResponse) -> Void
-    func loadNotes(onCompletion: LoadNotesResponse) -> Void
-    func updateNote(_ note: Note, onCompletion: UpdateNoteResponse) -> Void
-    func deleteNote(_ noteId: String, onCompletion: DeleteNoteResponse) -> Void
+    func getNote(_ noteId: String, onCompletion: @escaping GetNoteResponse) -> Void
+    func loadNotes(onCompletion: @escaping LoadNotesResponse) -> Void
+    func updateNote(_ note: Note, onCompletion: @escaping UpdateNoteResponse) -> Void
+    func deleteNote(_ noteId: String, onCompletion: @escaping DeleteNoteResponse) -> Void
 }
 
 enum DataServiceError: Error {

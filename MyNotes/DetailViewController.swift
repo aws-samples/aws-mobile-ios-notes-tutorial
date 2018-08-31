@@ -131,19 +131,19 @@ class DetailViewController: UIViewController, UITextViewDelegate, UITextFieldDel
         analyticsService?.recordEvent("SaveNote", parameters: ["id":note.id ?? "new"], metrics: nil)
         dataService?.updateNote(note) { (note, error) in
             if (error != nil) {
-                analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
-                showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "updateNote Error")
+                self.analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
+                self.showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "updateNote Error")
             } else if (note != nil) {
-                if (detailItem != nil) {
-                    noteId = note!.id
-                    idLabel.text = noteId
+                if (self.detailItem != nil) {
+                    self.noteId = note!.id
+                    self.idLabel.text = self.noteId
                 } else {
-                    detailItem = note
+                    self.detailItem = note
                 }
                 NotificationCenter.default.post(name: Notification.Name("NoteChangedIdentifier"), object: note)
             } else {
-                analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
-                showErrorAlert("note is nil", title: "updateNote Error")
+                self.analyticsService?.recordEvent("Error", parameters: ["op":"updateNote"], metrics: nil)
+                self.showErrorAlert("note is nil", title: "updateNote Error")
             }
         }
     }

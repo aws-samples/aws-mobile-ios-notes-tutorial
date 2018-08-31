@@ -105,8 +105,8 @@ class MasterViewController: UITableViewController {
                     self.notes = notesFromNetwork!
                 }
             } else {
-                analyticsService?.recordEvent("Error", parameters: ["op":"loadNotes"], metrics: nil)
-                showErrorAlert(error?.localizedDescription ?? "Unknown data service error", title: "LoadNotes Error")
+                self.analyticsService?.recordEvent("Error", parameters: ["op":"loadNotes"], metrics: nil)
+                self.showErrorAlert(error?.localizedDescription ?? "Unknown data service error", title: "LoadNotes Error")
             }
         }
     }
@@ -182,14 +182,14 @@ class MasterViewController: UITableViewController {
             analyticsService?.recordEvent("DeleteNote", parameters: [ "id" : noteId ], metrics: nil)
             dataService?.deleteNote(noteId) { (error) in
                 if error == nil {
-                    notes.remove(at: indexPath.row)
+                    self.notes.remove(at: indexPath.row)
                     DispatchQueue.main.async {
                         tableView.reloadData()
                     }
                     // If the detail view is showing the current note, remove it.
-                    if let view = splitViewController {
+                    if let view = self.splitViewController {
                         if (view.displayMode == UISplitViewControllerDisplayMode.allVisible) {
-                            if let detail = splitViewController?.secondaryViewController?.childViewControllers.first as! DetailViewController? {
+                            if let detail = self.splitViewController?.secondaryViewController?.childViewControllers.first as! DetailViewController? {
                                 if noteId == detail.detailItem?.id {
                                     // We are deleting the item that is currently displayed
                                     detail.detailItem = nil
@@ -198,8 +198,8 @@ class MasterViewController: UITableViewController {
                         }
                     }
                 } else {
-                    analyticsService?.recordEvent("Error", parameters: ["op":"deleteNote"], metrics: nil)
-                    showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "Row not removed")
+                    self.analyticsService?.recordEvent("Error", parameters: ["op":"deleteNote"], metrics: nil)
+                    self.showErrorAlert(error?.localizedDescription ?? "Unknown Error", title: "Row not removed")
                 }
             }
         }

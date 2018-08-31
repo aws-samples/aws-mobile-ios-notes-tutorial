@@ -17,6 +17,7 @@ import Foundation
  * Implementation of a mock data service that stores all the data in-memory
  */
 class MockDataService : DataService {
+    
     static var notes = [Note]()
     
     // Initialize 20 notes for mocking purposes.
@@ -28,7 +29,7 @@ class MockDataService : DataService {
     }
     
     // Get a specific note by noteId
-    func getNote(_ noteId: String, onCompletion: (Note?, Error?) -> Void) {
+    func getNote(_ noteId: String, onCompletion: @escaping (Note?, Error?) -> Void) {
         for (_, element) in MockDataService.notes.enumerated() {
             if (element.id == noteId) {
                 onCompletion(element, nil)
@@ -39,12 +40,12 @@ class MockDataService : DataService {
     }
     
     // Load all the notes
-    func loadNotes(onCompletion: ([Note]?, Error?) -> Void) {
+    func loadNotes(onCompletion: @escaping ([Note]?, Error?) -> Void) {
         onCompletion(MockDataService.notes, nil)
     }
     
     // Update a note (either create or update)
-    func updateNote(_ note: Note, onCompletion: (Note?, Error?) -> Void) {
+    func updateNote(_ note: Note, onCompletion: @escaping (Note?, Error?) -> Void) {
         if (note.id == nil) {
             let newNote = Note(id: UUID().uuidString, title: note.title, content: note.content)
             MockDataService.notes.append(newNote)
@@ -62,7 +63,7 @@ class MockDataService : DataService {
     }
     
     // Delete a note from the service
-    func deleteNote(_ noteId: String, onCompletion: (Error?) -> Void) {
+    func deleteNote(_ noteId: String, onCompletion: @escaping (Error?) -> Void) {
         var index = -1
         for (listIndex, element) in MockDataService.notes.enumerated() {
             if (element.id == noteId) {
