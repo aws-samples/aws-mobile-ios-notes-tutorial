@@ -30,7 +30,9 @@ class MasterViewController: UITableViewController {
     var addButton: UIBarButtonItem? = nil
     var notes = [Note]() {
         didSet {
-            tableView.reloadData()
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
         }
     }
 
