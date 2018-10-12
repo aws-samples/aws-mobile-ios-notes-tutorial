@@ -6,7 +6,7 @@ A starting point iOS Swift app to demonstrate best practices for a well-written 
 
 ## Get Started
 
-Clone the repo and select the _MyNotes.xcodeproj_ to launch project in Xcode.
+[Read the tutorial](./tutorial/index.md)
 
 ## Features
 
