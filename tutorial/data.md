@@ -131,7 +131,7 @@ You should now have a `NotesAPI.swift` file in the root of your project.
         use_frameworks!
 
         # Analytics dependency
-        pod 'AWSPinpoint'
+        pod 'AWSPinpoint', '~> 2.10.0'
 
         # Auth dependencies
         pod 'AWSMobileClient', '~> 2.10.0'
