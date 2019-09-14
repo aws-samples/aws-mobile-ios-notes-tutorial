@@ -134,12 +134,15 @@ You should now have a `NotesAPI.swift` file in the root of your project.
         pod 'AWSPinpoint'
 
         # Auth dependencies
-        pod 'AWSUserPoolsSignIn'
-        pod 'AWSAuthUI'
-        pod 'AWSMobileClient'
-
+        pod 'AWSMobileClient', '~> 2.10.0'
+        pod 'AWSAuthUI', '~> 2.10.0'
+        pod 'AWSUserPoolsSignIn', '~> 2.10.0'
+        
+        pod 'AWSCore', '~> 2.10.0'
+  
         # API dependency
-        pod 'AWSAppSync'
+        
+        pod 'AWSAppSync', '~> 2.14.0'
 
         # other pods
     end
