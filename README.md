@@ -22,9 +22,9 @@ For simplicity, this notes app only uses built-in iOS features and does not cont
 
 ## Prerequisites
 
-Xcode 8+
+Xcode 10+
 
-Swift 3
+Swift 5
 
 iOS 10.0 or greater
 
