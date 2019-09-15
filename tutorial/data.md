@@ -33,7 +33,7 @@ You should be able to complete this section of the tutorial in 45-60 minutes.
    * Do you have an annotated GraphQL schema: **Y**.
    * Provide your schema file path: **./server/schema-model.graphql**.
 
-6. To deploy the new service, enter the following:
+6. To deploy the new service, enter the following (When asked if you want to generate the API answer no as we will do that in the next task:
 
     ```bash
     $ amplify push
