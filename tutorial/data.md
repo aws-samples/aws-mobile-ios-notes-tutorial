@@ -224,9 +224,13 @@ All data access is already routed through a `DataService` protocol, which has a 
         init() {
             do {
                 // Initialize the AWS AppSync configuration
-                let appSyncConfig = try AWSAppSyncClientConfiguration(appSyncClientInfo: AWSAppSyncClientInfo(),
-                                        userPoolsAuthProvider: MyCognitoUserPoolsAuthProvider(),
-                                        databaseURL:databaseURL)
+   let cacheConfiguration = try AWSAppSyncCacheConfiguration()
+            // AppSync configuration & client initialization
+            let appSyncServiceConfig = try AWSAppSyncServiceConfig()
+            
+            let appSyncConfig = try AWSAppSyncClientConfiguration(appSyncServiceConfig: appSyncServiceConfig,
+                                                                  userPoolsAuthProvider: MyCognitoUserPoolsAuthProvider(),
+                                                                  cacheConfiguration: cacheConfiguration)
                 // Initialize the AWS AppSync client
                 appSyncClient = try AWSAppSyncClient(appSyncConfig: appSyncConfig)
             } catch {
