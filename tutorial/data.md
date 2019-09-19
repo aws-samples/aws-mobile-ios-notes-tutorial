@@ -38,6 +38,9 @@ You should be able to complete this section of the tutorial in 45-60 minutes.
     ```bash
     $ amplify push
     ```
+    
+    * Are you sure you want to continue: Y
+    * Do you want to generate code for your newly created GraphQL API: n
 
 The AWS CloudFormation template that is generated creates an Amazon DynamoDB table that is protected by Amazon Cognito user pool authentication.  Access is provided by AWS AppSync.  AWS AppSync will tag each record that is inserted into the database with the user ID of the authenticated user.  The authenticated user will only be able to read the records that they own.
 
@@ -113,7 +116,10 @@ To interact with AWS AppSync, the iOS client needs to define GraphQL queries and
     ```
 
     * The file name pattern of graphql queries: :userinput:`./MyNotes/GraphQLOperations/notes-operations.graphql`
+    * Do you want to generate/update all possible GraphQL operations - queries, mutations and subscriptions: **Y**
+    * Enter maximum statement depth: Enter the default
     * The file name for the generated code: :userinput:`NotesAPI.swift`
+    * Do you want to generate code for your newly created GraphQL API: **Y**
 
 You should now have a `NotesAPI.swift` file in the root of your project.
 
