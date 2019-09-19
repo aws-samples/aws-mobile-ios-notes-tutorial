@@ -25,7 +25,7 @@ Before beginning, you must:
 
 ## Download the Source Code
 
-Download the [source code](https://github.com/aws-samples/aws-mobile-ios-notes-tutorial/archive/master.zip) from the GitHub repository.
+Download the [source code](https://github.com/ldomb/aws-mobile-ios-notes-tutorial/archive/master.zip) from the GitHub repository.
 
 ## Compile and Run the Project
 
