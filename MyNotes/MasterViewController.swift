@@ -95,7 +95,7 @@ class MasterViewController: UITableViewController {
             notes.append(note)
             index = notes.count - 1
         }
-        
+        self.tableView.reloadData()
         let indexPath = IndexPath(row: index!, section: 0)
         tableView.selectRow(at: indexPath, animated: true, scrollPosition: .bottom)
     }

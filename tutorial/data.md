@@ -33,11 +33,14 @@ You should be able to complete this section of the tutorial in 45-60 minutes.
    * Do you have an annotated GraphQL schema: **Y**.
    * Provide your schema file path: **./server/schema-model.graphql**.
 
-6. To deploy the new service, enter the following:
+6. To deploy the new service, enter the following (When asked if you want to generate the API answer "no" as we will do that in the next task):
 
     ```bash
     $ amplify push
     ```
+    
+    * Are you sure you want to continue: Y
+    * Do you want to generate code for your newly created GraphQL API: n
 
 The AWS CloudFormation template that is generated creates an Amazon DynamoDB table that is protected by Amazon Cognito user pool authentication.  Access is provided by AWS AppSync.  AWS AppSync will tag each record that is inserted into the database with the user ID of the authenticated user.  The authenticated user will only be able to read the records that they own.
 
@@ -113,7 +116,10 @@ To interact with AWS AppSync, the iOS client needs to define GraphQL queries and
     ```
 
     * The file name pattern of graphql queries: :userinput:`./MyNotes/GraphQLOperations/notes-operations.graphql`
+    * Do you want to generate/update all possible GraphQL operations - queries, mutations and subscriptions: **Y**
+    * Enter maximum statement depth: Enter the default
     * The file name for the generated code: :userinput:`NotesAPI.swift`
+    * Do you want to generate code for your newly created GraphQL API: **Y**
 
 You should now have a `NotesAPI.swift` file in the root of your project.
 
@@ -131,15 +137,18 @@ You should now have a `NotesAPI.swift` file in the root of your project.
         use_frameworks!
 
         # Analytics dependency
-        pod 'AWSPinpoint'
+        pod 'AWSPinpoint', '~> 2.10.0'
 
         # Auth dependencies
-        pod 'AWSUserPoolsSignIn'
-        pod 'AWSAuthUI'
-        pod 'AWSMobileClient'
-
+        pod 'AWSMobileClient', '~> 2.10.0'
+        pod 'AWSAuthUI', '~> 2.10.0'
+        pod 'AWSUserPoolsSignIn', '~> 2.10.0'
+        
+        pod 'AWSCore', '~> 2.10.0'
+  
         # API dependency
-        pod 'AWSAppSync'
+        
+        pod 'AWSAppSync', '~> 2.14.0'
 
         # other pods
     end
@@ -221,9 +230,13 @@ All data access is already routed through a `DataService` protocol, which has a 
         init() {
             do {
                 // Initialize the AWS AppSync configuration
-                let appSyncConfig = try AWSAppSyncClientConfiguration(appSyncClientInfo: AWSAppSyncClientInfo(),
-                                        userPoolsAuthProvider: MyCognitoUserPoolsAuthProvider(),
-                                        databaseURL:databaseURL)
+   let cacheConfiguration = try AWSAppSyncCacheConfiguration()
+            // AppSync configuration & client initialization
+            let appSyncServiceConfig = try AWSAppSyncServiceConfig()
+            
+            let appSyncConfig = try AWSAppSyncClientConfiguration(appSyncServiceConfig: appSyncServiceConfig,
+                                                                  userPoolsAuthProvider: MyCognitoUserPoolsAuthProvider(),
+                                                                  cacheConfiguration: cacheConfiguration)
                 // Initialize the AWS AppSync client
                 appSyncClient = try AWSAppSyncClient(appSyncConfig: appSyncConfig)
             } catch {
