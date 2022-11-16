@@ -1,0 +1,33 @@
+version: 2.1
+
+jobs: # a basic unit of work in a run
+  build: # your job name
+    macos:
+      xcode: 12.5.1 # indicate your selected version of Xcode
+    steps: # a series of commands to run
+      - checkout  # pull down code from your version control system.
+      - run:
+          name: Run Unit Tests
+          command: xcodebuild build-for-testing -scheme MyNotes -destination generic/platform=iOS CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO -allowProvisioningUpdates
+#   build:
+#     macos:
+#       xcode: 12.5.1 # indicate your selected version of Xcode
+#     steps:
+#       - checkout
+#       - run:
+#           # build our application
+#           name: Run Unit Tests
+#           command: xcodebuild test -workspace Nasa.xcworkspace -scheme Nasa -destination 'platform=iOS Simulator,name=iPhone 12,OS=14.5'
+#       - run:
+#           # compress Xcode's build output so that it can be stored as an artifact
+#           name: Build Application
+#           command: xcodebuild -workspace Nasa.xcworkspace -scheme Nasa
+
+
+# workflows:
+#   test_build:
+#     jobs:
+#       - test
+#       - build:
+#         requires: # sequence the build job to run after test
+#           test
